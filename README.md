@@ -141,7 +141,7 @@ Tổng quan hệ thống:
 
 ---
 
-## **HỆ THỐNG MEDICARE - TRANG NGƯỜI DÙNG**
+## **WEBSITE PHÒNG KHÁM - TRANG NGƯỜI DÙNG**
 
 ---
 
@@ -278,7 +278,15 @@ Người dùng có thể:
 
 ---
 
-## 6. **Kết luận**
+## 6. **Hướng dẫn sử dụng**
+
+* **Link truy cập:**
+  [https://medicare-web-amber.vercel.app](https://medicare-web-amber.vercel.app)
+
+
+---
+
+## 7. **Kết luận**
 
 Giao diện người dùng của hệ thống **Medicare** được thiết kế để tối ưu hoá:
 
