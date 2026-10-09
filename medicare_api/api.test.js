@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import handler from "./api/[...path].js";
+import versionedHandler from "./api/v1/[endpoint].js";
 
 function makeResponse() {
   return {
@@ -95,4 +96,20 @@ test("unknown origins are rejected", () => {
   );
 
   assert.equal(res.statusCode, 403);
+});
+
+test("versioned Vercel route serves the patient configuration endpoint", () => {
+  const res = makeResponse();
+
+  versionedHandler(
+    {
+      method: "GET",
+      url: "/api/v1/get_configurations",
+      headers: { origin: "http://localhost:5173" },
+    },
+    res
+  );
+
+  assert.equal(res.statusCode, 200);
+  assert.ok(Array.isArray(res.body.data));
 });
