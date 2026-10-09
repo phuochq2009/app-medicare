@@ -27,6 +27,8 @@ export default function App() {
   const location = useLocation();
   const requestPermission = async () => {
     try {
+      if (!messaging) return;
+
       if (!("serviceWorker" in navigator)) {
         console.error("Trình duyệt này không hỗ trợ Service Worker.");
         return;

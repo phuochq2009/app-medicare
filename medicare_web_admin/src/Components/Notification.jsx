@@ -35,6 +35,8 @@ function NotificationIcon() {
   const queryClient = useQueryClient();
 
   useEffect(() => {
+    if (!messaging) return;
+
     const unsubscribe = onMessage(messaging, (payload) => {
       sound
         .play()

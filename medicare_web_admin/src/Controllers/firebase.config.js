@@ -12,9 +12,15 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+const requiredKeys = ["apiKey", "authDomain", "projectId", "messagingSenderId", "appId"];
+const hasConfiguredValue = (value) =>
+  typeof value === "string" && value.trim() !== "" && !value.startsWith("default-");
+const isFirebaseConfigured = requiredKeys.every((key) =>
+  hasConfiguredValue(firebaseConfig[key])
+);
+const vapidKey = import.meta.env.VITE_FIREBASE_FCM_PUBLIC_KEY;
 
-// Initialize Firebase Messaging
-const messaging = getMessaging(app);
+const app = isFirebaseConfigured ? initializeApp(firebaseConfig) : null;
+const messaging = app && hasConfiguredValue(vapidKey) ? getMessaging(app) : null;
+
 export { app, messaging, getToken, onMessage };
