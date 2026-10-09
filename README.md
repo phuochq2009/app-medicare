@@ -1,6 +1,6 @@
 # 📄 TÀI LIỆU MÔ TẢ TÍNH NĂNG & CÔNG NGHỆ
 
-## **WEBSITE PHÒNG KHÁM – Trang Quản Trị**
+## **WEBSITE PHÒNG KHÁM – TRANG QUẢN TRỊ**
 
 ---
 

@@ -1,111 +1,92 @@
-# Hướng dẫn khắc phục lỗi API khi deploy lên Vercel
+# Deploy Medicare lên Vercel
 
-## Vấn đề
-Khi deploy lên Vercel, API calls bị lỗi CORS hoặc network error, trong khi ở local thì hoạt động bình thường.
+Repository này có hai ứng dụng frontend Vite độc lập và backend API tối thiểu trong `medicare_api`. Backend hiện chỉ trả cấu hình khởi tạo và các collection rỗng để trang chủ có thể hiển thị; nó chưa lưu dữ liệu, xử lý đăng nhập, lịch hẹn hay nghiệp vụ quản trị.
 
-## Nguyên nhân
-1. **CORS (Cross-Origin Resource Sharing)**: API server không cho phép requests từ domain của Vercel
-2. **Environment Variables**: Biến môi trường chưa được cấu hình trên Vercel
-3. **Mixed Content**: Vercel sử dụng HTTPS nhưng API server sử dụng HTTP
+## 1. Kiểm tra API trước
 
-## Giải pháp đã thực hiện
+Kiểm tra API sau khi deploy backend theo mục 3 bên dưới. Không dùng hostname cũ `vmi2087236.contaboserver.net` hoặc giá trị ví dụ nếu chưa xác nhận nó đang hoạt động.
 
-### 1. Cải thiện API Address Configuration
-- ✅ Luôn sử dụng HTTP cho API server (http://194.233.67.229:443)
-- ✅ Xử lý environment variables an toàn
-- ✅ Fallback đơn giản và ổn định
+Endpoint cấu hình mà trang bệnh nhân cần là:
 
-### 2. Cải thiện Error Handling
-- ✅ Thêm retry mechanism (3 lần thử với exponential backoff)
-- ✅ Timeout 15 giây cho API calls
-- ✅ Logging chi tiết cho debugging
-- ✅ Xử lý các loại lỗi cụ thể (CORS, Network, Server)
-
-### 3. Thêm Debug Component
-- ✅ Component ApiDebug để kiểm tra kết nối API
-- ✅ Hiển thị thông tin environment và API URL
-- ✅ Test connection button
-
-## Các bước cần thực hiện trên Vercel
-
-### Bước 1: Cấu hình Environment Variables
-1. Vào Vercel Dashboard
-2. Chọn project của bạn
-3. Vào **Settings** > **Environment Variables**
-4. Thêm các biến sau:
-
-```
-VITE_API_ADDRESS = http://194.233.67.229:443
+```text
+https://<api-domain>/api/v1/get_configurations
 ```
 
-### Bước 2: Cấu hình CORS trên API Server (nếu có quyền)
-Thêm vào API server (Laravel):
+Endpoint phải phân giải DNS, trả về phản hồi hợp lệ và cho phép CORS từ domain Vercel của cả hai frontend. Mã frontend thêm `/api/v1` vào `VITE_API_ADDRESS`, vì vậy chỉ nhập origin, không thêm `/api/v1` hay dấu `/` ở cuối.
 
-```php
-// Trong config/cors.php hoặc middleware
-return [
-    'paths' => ['api/*'],
-    'allowed_methods' => ['*'],
-    'allowed_origins' => [
-        'https://your-app-name.vercel.app',
-        'https://your-custom-domain.com',
-        'http://localhost:3000'
-    ],
-    'allowed_origins_patterns' => [],
-    'allowed_headers' => ['*'],
-    'exposed_headers' => [],
-    'max_age' => 0,
-    'supports_credentials' => false,
-];
+## 2. Deploy backend API
+
+Tạo project Vercel thứ ba từ cùng repository:
+
+- Root Directory: `medicare_api`
+- Framework: Other
+- Build Command: để trống
+- Output Directory: để trống
+
+Thêm biến `CORS_ORIGINS` chứa origin chính xác của hai frontend, phân tách bằng dấu phẩy, ví dụ:
+
+```text
+CORS_ORIGINS=https://<patient-project>.vercel.app,https://<admin-project>.vercel.app
 ```
 
-### Bước 3: Deploy lại
-Sau khi cấu hình environment variables, deploy lại project.
+Có thể cấu hình thêm `CLINIC_NAME`, `PLAY_STORE_URL` và `APP_STORE_URL`. Endpoint kiểm tra sau deploy là `https://<api-project>.vercel.app/api/health`; endpoint cấu hình là `https://<api-project>.vercel.app/api/v1/get_configurations`.
 
-## Kiểm tra và Debug
+## 3. Tạo project giao diện bệnh nhân
 
-### 1. Kiểm tra Console Logs
-Mở Developer Tools > Console để xem thông tin lỗi chi tiết.
+Trong Vercel, import repository và cấu hình:
 
-### 2. Sử dụng Debug Component
-Component ApiDebug sẽ hiển thị ở góc phải dưới (chỉ trong development).
+- Root Directory: `medicare_web`
+- Framework Preset: Vite
+- Install Command: `npm ci`
+- Build Command: `npm run build`
+- Output Directory: `dist`
 
-### 3. Test API Connection
-Click "Test Connection" button trong debug component.
+Thêm biến môi trường cho Production (và Preview nếu cần):
 
-## Troubleshooting
+```text
+VITE_API_ADDRESS=https://<api-domain>
+```
 
-### Nếu vẫn lỗi CORS:
-1. Kiểm tra CORS configuration trên Laravel server
-2. Thử sử dụng CORS proxy (đã có sẵn trong code)
-3. Liên hệ admin của API server để cấu hình CORS
+Thay `<api-domain>` bằng API origin đã xác minh. Sau khi lưu biến, tạo deployment mới.
 
-### Nếu lỗi Mixed Content (HTTPS/HTTP):
-1. Vercel sử dụng HTTPS nhưng API server sử dụng HTTP
-2. Cần cấu hình CORS đúng cách trên server
-3. Hoặc sử dụng CORS proxy
+## 4. Tạo project trang quản trị
 
-### Nếu lỗi Network:
-1. Kiểm tra xem API server có hoạt động không
-2. Kiểm tra firewall settings
-3. Thử ping IP address của API server
+Tạo project Vercel thứ hai từ cùng repository:
 
-### Nếu lỗi Timeout:
-1. Tăng timeout trong code (hiện tại là 15 giây)
-2. Kiểm tra network performance
-3. Thử sử dụng CDN hoặc proxy
+- Root Directory: `medicare_web_admin`
+- Framework Preset: Vite
+- Install Command: `npm ci`
+- Build Command: `npm run build`
+- Output Directory: `dist`
+- Environment Variable: `VITE_API_ADDRESS=https://<api-domain>`
 
-## Các file đã được cập nhật:
-- `src/Controllers/apiAddress.js` - Cải thiện API address configuration
-- `src/Controllers/ApiControllers.js` - Thêm retry mechanism và error handling
-- `src/Components/ApiDebug.jsx` - Component debug mới
-- `src/App.jsx` - Thêm debug component
-- `src/Controllers/apiProxy.js` - CORS proxy configuration
+Build script chạy thêm bước postbuild để đặt ứng dụng quản trị dưới `/admin`. Kiểm tra URL `https://<admin-project>.vercel.app/admin` sau khi deploy.
 
-## Lưu ý:
-- API server sử dụng HTTP (http://194.233.67.229:443)
-- Vercel sử dụng HTTPS, có thể gây ra mixed content issues
-- Debug component chỉ hiển thị trong development mode
-- Retry mechanism sẽ thử lại 3 lần với exponential backoff
-- Tất cả API calls đều có timeout 15 giây (30 giây cho upload)
-- Error messages được hiển thị bằng tiếng Việt cho user-friendly 
+## 5. Cấu hình CORS trên API
+
+Đặt `CORS_ORIGINS` thành origin chính xác của cả hai frontend. Nếu dùng custom domain, thêm các domain đó và redeploy backend. API tối thiểu hiện chỉ nhận GET và OPTIONS.
+
+Không dùng CORS proxy công khai làm giải pháp production. Proxy helper trong frontend không được dùng bởi các API request chính.
+
+## 6. Xác minh sau deploy
+
+1. Mở trang chủ bệnh nhân và trang `/admin`.
+2. Mở DevTools → Network, tải lại trang và tìm request `get_configurations`.
+3. Xác nhận request đi tới `https://<api-domain>/api/v1/get_configurations` và có phản hồi thành công.
+4. Mở trực tiếp một route như `/doctors`, sau đó refresh để xác nhận SPA fallback hoạt động.
+
+Trang lỗi “500 Lỗi máy chủ nội bộ” là màn hình do frontend hiển thị khi request cấu hình ban đầu thất bại; nó không nhất thiết là HTTP 500 do Vercel trả về.
+
+## Xử lý lỗi thường gặp
+
+- `ERR_NAME_NOT_RESOLVED`: domain API sai hoặc chưa có DNS record công khai.
+- CORS/preflight error: cấu hình CORS trên backend chưa cho phép origin/header/method cần thiết.
+- HTTP 404: kiểm tra API domain và đường dẫn endpoint.
+- HTTP 5xx: backend nhận request nhưng trả lỗi; kiểm tra log máy chủ API.
+- Request vẫn dùng URL cũ: cập nhật `VITE_API_ADDRESS` trong đúng Vercel project và redeploy.
+
+## Firebase
+
+Có thể bỏ qua Firebase để triển khai frontend, nhưng các chức năng đăng nhập Firebase và push notification sẽ chưa hoạt động nếu chưa cấu hình Firebase thật. Không đưa giá trị placeholder vào Vercel.
+
+Các file `.env` chỉ dành cho local development và được loại khỏi Git. `VITE_API_ADDRESS` sẽ được đưa vào bundle frontend; đây phải là URL công khai, không phải mật khẩu hay API secret.

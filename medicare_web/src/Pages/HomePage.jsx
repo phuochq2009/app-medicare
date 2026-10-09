@@ -37,6 +37,9 @@ export default function HomePage() {
   const doctorImage = settingsData?.find(
     (value) => value.id_name === "web_doctor_image"
   );
+  const doctorImageUrl = doctorImage?.value
+    ? `${imageBaseURL}/${doctorImage.value}`
+    : "/doctor-2.png";
 
   return (
     <Box>
@@ -106,7 +109,7 @@ export default function HomePage() {
               </Flex>
             </Box>
             <Image
-              src={`${imageBaseURL}/${doctorImage.value}`}
+              src={doctorImageUrl}
               w={{ base: "80%", md: "20%" }}
               flex={1}
             />
